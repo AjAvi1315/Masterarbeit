@@ -1,44 +1,64 @@
 import numpy as np
 
+np.random.seed(4949)
 
 
+def basic_monte_carlo(x_0, time_steps, paths, step_calc_fun):
+    t_size = np.size(time_steps)
+    X = np.zeros((1, t_size), int)
+    for j in range(0, paths):
+        Z = np.random.normal(loc=0, scale=1, size=t_size)
+        x_j = np.array([x_0])
 
-class NumericalMethods:
-    def __init__(self, finance_object):
-        self.finance_object = finance_object
+        for i in range(1, t_size):
+            h = time_steps[i] - time_steps[i - 1]
+            x_next = step_calc_fun(x_j[i - 1], h, Z[i])
+            x_j = np.append(x_j, x_next)
 
-class BasicMonteCarlo(NumericalMethods):
-    def __init__(self, finance_object):
-        super().__init__(finance_object)
-        # check if finance objekt has interface
+        X = np.vstack((X, [x_j]))
+    return X[1:]
 
+def longstaff_schwarz_method(sim_paths, cash_flows, discont_values):
+    n = len(sim_paths)
+    m = len(sim_paths[0])
+    # disconting cash flows
+    for i in range(0, n):
+        for j in range(0, m):
+            if cash_flows[i][j] > 0.0:
+                cash_flows[i][j] = discont_values[m-1]*cash_flows[i][j]
+            else:
+                cash_flows[i][j] = 0.0
 
-    def calc_mue(self, i, param):
-        raise NotImplementedError
+    for m in range(m - 2, 0, -1):
+        # print(m)
+        X = []
+        Y = []
+        j = []
+        for i in range(0, n):
+            if cash_flows[i][m] > 0.0:
+                j.append(i)
+                x = sim_paths[i][m]
+                X.append([np.exp(-x / 2), np.exp(-x / 2) * -2 * x, np.exp(-x / 2) * ((x * x) / 2)])
+                # X.append([1,x,x*x]) #kleinste quadrate
+                # B_t=np.exp(-mü*T[t_pay[m+1]])
+                Y.append(cash_flows[i][m + 1])
 
-    def calc_sigma(self, i, param):
-        raise NotImplementedError
+        # lösen des Regressionsproblem mit QR Verfahren (Minimierung)
+        Q, R = np.linalg.qr(X)
+        p = np.dot(Q.T, Y)
+        a = np.dot(np.linalg.pinv(R), p)
 
-    def get_start_value(self):
-        raise NotImplementedError
+        C = np.dot(X, a)
 
-    def get_run_time_size(self):
-        raise NotImplementedError
+        # print(C)
+        V = []
+        for i in j:
+            V.append(cash_flows[i][m])
 
-    def get_paths(self):
-        raise NotImplementedError
-
-    def calculate(self):
-        S = np.array([])
-        for j in range(37):
-            Z = np.random.normal(loc=0, scale=1, size=self.get_run_time_size())
-            s_j = np.array([self.get_start_value()])
-
-            for i in range(1, self.get_run_time_size()):
-                x_t = self.calc_mue(i, s_j[i - 1]) + self.calc_sigma(i, i - 1) * Z[i]
-                next_s = s_j[i - 1] * np.exp(x_t)
-                s_j = np.append(s_j, next_s)
-
-            S = np.append(S, s_j)
-        return S
+        for i in range(len(V)):
+            if V[i] >= C[i]:
+                cash_flows[j[i]][m + 1] = 0.0
+            else:
+                cash_flows[j[i]][m] = 0.0
+    return cash_flows
 
