@@ -8,7 +8,7 @@ class StockOption:
         stock = Stock(start_value, mue, sigma)
         self.option = Option(time_stamps, exercise_dates, stock, strike, option_type)
 
-    def pricerMC(self, paths):
+    def pricer_monte_carlo(self, paths):
         print("Do some Pricing")
         S = self.option.underlyning.monte_carlo_simulation(self.option.run_time, paths)
         S_exercise = self.option.get_exercise_underlyning(S)
