@@ -1,8 +1,9 @@
+from Instrument import Instrument
 from Option import Option
 from Stock import Stock
 
 
-class StockOption:
+class StockOption(Instrument):
 
     def __init__(self, start_value, mue, sigma, time_stamps, exercise_dates, strike, option_type):
         stock = Stock(start_value, mue, sigma)

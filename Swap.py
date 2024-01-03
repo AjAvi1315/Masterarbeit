@@ -9,22 +9,11 @@ from Derivate import Derivate
 class Swap(Derivate):
     def __init__(self, run_time, underlyning, strike, type, variable_rates):
         super().__init__(run_time, underlyning, strike, type)
-        time_step = run_time[1] - run_time[0]
-        self.r = self.interpolate_forward_rates(time_step, variable_rates)
+        self.r = self.interpolate_forward_rates(variable_rates)
 
-    def interpolate_forward_rates(self, time_step, forward_rates):
-        #time_max = forward_rates[0][-1]/time_step + 2
-        #time_max = int(math.ceil(time_max))
-        #t = np.array(range(0, time_max))  # jährliche Timesteps
-        #f = sInter.CubicSpline(forward_rates[0], forward_rates[1])
-        #x_new = t / time_step
-        x = [0, 1 / 12, 3 / 12, 6 / 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
-        y = [-0.586, -0.57705, -0.56835, -0.47205, -0.1697, 0.48395, 0.7855, 0.9385, 1.0275, 1.0965, 1.1605, 1.228,
-             1.293, 1.353, 1.538, 1.523]
-        t = np.array(range(0, 12 * 15 + 2))  # jährliche Timesteps
-        f = sInter.CubicSpline(x, y)
-        x_new = t * (1 / 12)
-        y_new = f(x_new)
+    def interpolate_forward_rates(self, forward_rates):
+        f = sInter.CubicSpline(forward_rates["x"], forward_rates["y"])
+        y_new = f(self.run_time)
         return y_new / 100
 
     """

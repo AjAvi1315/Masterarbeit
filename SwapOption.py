@@ -1,13 +1,14 @@
+from Instrument import Instrument
 from Option import Option
 from Swap import Swap
+
 from InterestRate import InterestRate
 
 import numpy as np
 import math as math
 
 
-class SwapOption:
-
+class SwapOption(Instrument):
     def __init__(self, sigma, time_stamps, exercise_dates, tenor, strike, option_type, mean_reversion, forward_rates):
         interest_rate = InterestRate(0, sigma, mean_reversion)
         self.swap = Swap(tenor, interest_rate, strike, option_type, forward_rates)
