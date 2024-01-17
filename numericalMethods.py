@@ -1,10 +1,10 @@
 import numpy as np
 
-np.random.seed(4444)
+np.random.seed(4947)
 
-
+"""Basic function for the interaction steps in the Monte Carlo method"""
 def basic_monte_carlo(x_0, time_steps, paths, step_calc_fun):
-    t_size = np.size(time_steps)-1
+    t_size = np.size(time_steps) - 1
     X = np.zeros((1, t_size), int)
     for j in range(0, paths):
         Z = np.random.normal(loc=0, scale=1, size=t_size)
@@ -17,21 +17,14 @@ def basic_monte_carlo(x_0, time_steps, paths, step_calc_fun):
         X = np.vstack((X, [x_j]))
     return X[1:]
 
-def longstaff_schwarz_method(sim_paths, cash_flows, discont_values = None):
+"""
+Basic function for the longstaff-schwartz-method
+It creates the regression matrix from the paths and the required coefficients at each exercise time
+"""
+def longstaff_schwartz_method(sim_paths, cash_flows):
     n = len(sim_paths)
     m = len(sim_paths[0])
-    # disconting cash flows
-    # ONLY FOR STOCKS CHECK IF IS AN OPTION FOR SWAP
-    """
-    for i in range(0, n):
-        for j in range(0, m):
-            if cash_flows[i][j] > 0.0:
-                cash_flows[i][j] = discont_values[j]*cash_flows[i][j]
-            else:
-                cash_flows[i][j] = 0.0
-    """
     for k in range(m - 2, 0, -1):
-        # print(m)
         X = []
         Y = []
         j = []
@@ -39,20 +32,17 @@ def longstaff_schwarz_method(sim_paths, cash_flows, discont_values = None):
             if cash_flows[i][k] > 0.0:
                 j.append(i)
                 x = sim_paths[i][k]
-                #X.append([np.exp(-x / 2), np.exp(-x / 2) * -2 * x, np.exp(-x / 2) * ((x * x) / 2)])
-                X.append([1, x, x*x]) #kleinste quadrate
-                # B_t=np.exp(-mü*T[t_pay[m+1]])
+                # X.append([np.exp(-x / 2), np.exp(-x / 2) * -2 * x, np.exp(-x / 2) * ((x * x) / 2)])
+                X.append([1, x, x * x])  # least squares
                 Y.append(cash_flows[i][k + 1])
             else:
                 cash_flows[i][k] = 0.0
-        # lösen des Regressionsproblem mit QR Verfahren (Minimierung)
         if Y:
             Q, R = np.linalg.qr(X)
             p = np.dot(Q.T, Y)
             a = np.dot(np.linalg.pinv(R), p)
             C = np.dot(X, a)
 
-            # print(C)
             V = []
             for i in j:
                 V.append(cash_flows[i][k])
@@ -63,4 +53,3 @@ def longstaff_schwarz_method(sim_paths, cash_flows, discont_values = None):
                 else:
                     cash_flows[j[i]][k] = 0.0
     return cash_flows
-

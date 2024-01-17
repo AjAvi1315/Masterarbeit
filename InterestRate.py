@@ -4,12 +4,20 @@ import math as math
 
 from BasicValue import BasicValue
 
+"""
+The child class of BasicValue contains the functions for structuring the procedures.
+The specific calculations for interrestrate are summarised here 
+Attention! not all functions were designed to use different interest rate models
+ the approach was only used as an example for the calc_mc_step
+"""
+
 
 class InterestRate(BasicValue):
     def __init__(self, start_value, sigma, a):
         super().__init__(start_value, sigma)
         self.a = a
 
+    """function for the monte-carlo-method for the individual calculation of a value"""
     def calc_mc_step(self, x, time_steps, i, z):
         return self.calc_step_hjm_hw(x, time_steps, i, z)
 
@@ -21,6 +29,16 @@ class InterestRate(BasicValue):
         x_next = mue + math.sqrt(sig) * z
         return x_next
 
+    """function for the monte-carlo-method from numericalMethods"""
+    def monte_carlo_simulation(self, time_steps, paths):
+        self.pre_calc_hjm_hw(time_steps)
+        short_rates = nM.basic_monte_carlo(self.start_value, time_steps, paths, self.calc_mc_step)
+        return short_rates
+
+    """
+    Additional parameters are required so that a simulation step can be carried out
+    These must therefore be calculated before the monte carlo method is applied
+    """
     def pre_calc_hjm_hw(self, time_steps):
         global sigma_time
         global y
@@ -40,14 +58,8 @@ class InterestRate(BasicValue):
                 y_next = y_next + (p * q)
             y.append(y_next)
 
-    def monte_carlo_simulation(self, time_steps, paths):
-        self.pre_calc_hjm_hw(time_steps)
-        short_rates = nM.basic_monte_carlo(self.start_value, time_steps, paths, self.calc_mc_step)
-        return short_rates
-
-    # calculate the bank accounts
+    """The function name can also be found in Stocks. In this case, the bank accounts are calculated"""
     def get_discount_values(self, sim_matrix, times):
-        print('calc bank account')
         discount_values = []
         for x in sim_matrix:
             b = [1]
@@ -64,32 +76,27 @@ class InterestRate(BasicValue):
     """
         clac the underlyning cash flow for the swap in definition time
     """
-
     def calc_cash_flow(self, run_time, i_ex_time, strike, r, x):
-        print('calc cash_flow interest rate')
-        # print(run_time)
-        # print(i_ex_time)
-        # print(strike)
-        # print(r)
-        # print(x)
-
         p_fixed = 0
         for i in range(i_ex_time, len(run_time) - 2):
             g = math.exp(-self.a * (run_time[i] - run_time[i_ex_time]))
             G = (1 - g) / self.a
-            p_fixed += strike * (math.exp(-r[i] * run_time[i]) / math.exp(-r[i_ex_time] * run_time[i_ex_time])) * math.exp(-G * x - ((G ** 2) / 2 * y[i_ex_time]))
+            p_fixed += strike * (
+                        math.exp(-r[i] * run_time[i]) / math.exp(-r[i_ex_time] * run_time[i_ex_time])) * math.exp(
+                -G * x - ((G ** 2) / 2 * y[i_ex_time]))
 
         p_float = 0
-        # erster wert wird entfernt P(T_E,T_j) für T_E=T_j
         for i in range(i_ex_time + 1, len(run_time) - 2):
             g = math.exp(-self.a * (run_time[i] - run_time[i_ex_time]))
             G = (1 - g) / self.a
-            p_float += (strike - 1) * ((math.exp(-r[i] * run_time[i]) / math.exp(-r[i_ex_time] * run_time[i_ex_time])) * math.exp(-G * x - ((G ** 2) / 2 * y[i_ex_time])))
+            p_float += (strike - 1) * (
+                        (math.exp(-r[i] * run_time[i]) / math.exp(-r[i_ex_time] * run_time[i_ex_time])) * math.exp(
+                    -G * x - ((G ** 2) / 2 * y[i_ex_time])))
 
-        # Summiere bonds zur foated rate und annahme D = c-1
         p_k = (math.exp(-r[i_ex_time] * run_time[i_ex_time]) / math.exp(-r[i_ex_time] * run_time[i_ex_time]))
         G = (1 - math.exp(-self.a * (run_time[len(run_time) - 2] - run_time[i_ex_time]))) / self.a
-        p_n = math.exp(-r[len(run_time) - 2] * run_time[len(run_time) - 2]) / math.exp(-r[i_ex_time] * run_time[i_ex_time]) * math.exp(-G * x - ((G ** 2) / 2 * y[i_ex_time]))
+        p_n = math.exp(-r[len(run_time) - 2] * run_time[len(run_time) - 2]) / math.exp(
+            -r[i_ex_time] * run_time[i_ex_time]) * math.exp(-G * x - ((G ** 2) / 2 * y[i_ex_time]))
         zb = -p_k + p_fixed - p_float + p_n
 
         return zb

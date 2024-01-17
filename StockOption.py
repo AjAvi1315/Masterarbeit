@@ -2,24 +2,17 @@ from Instrument import Instrument
 from Option import Option
 from Stock import Stock
 
-
+"""Class for managing the different procedures for options on stocks"""
 class StockOption(Instrument):
 
-    def __init__(self, start_value, mue, sigma, time_stamps, exercise_dates, strike, option_type):
-        stock = Stock(start_value, mue, sigma)
-        self.option = Option(time_stamps, exercise_dates, stock, strike, option_type)
+    def __init__(self, start_value, sigma, mue, time_stamps, exercise_dates, strike, option_type):
+        stock = Stock(start_value, sigma, mue)
+        self.option = Option(time_stamps, stock, strike, option_type, exercise_dates)
 
     def pricer_monte_carlo(self, paths):
-        print("Do some Pricing")
-        S = self.option.underlyning.monte_carlo_simulation(self.option.run_time, paths)
-        S_exercise = self.option.get_exercise_underlyning(S)
-        #print(S)
+        S = self.option.underlying.monte_carlo_simulation(self.option.run_time, paths)
+        S_exercise = self.option.get_exercise_values(S)
         cash_flows = self.option.get_cash_flow(S_exercise)
-        print('__________')
-        #print(len(cash_flows[0]))
-        #print(cash_flows)
         opt_cash_flow = self.option.get_opt_stops(S_exercise, cash_flows)
-        #print(opt_cash_flow)
         V = self.option.get_fair_value(opt_cash_flow)
-        print(V)
         return V
